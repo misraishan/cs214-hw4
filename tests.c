@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "mymalloc.h"
 
-int main() {
+void testFirstFit() {
     // Initialize the memory manager
     myinit(0); // Use first-fit algorithm
 
@@ -31,6 +31,9 @@ int main() {
 
     // Clean up the memory manager
     mycleanup();*/
+}
 
+int main() {
+    testFirstFit();
     exit(0);
 }
