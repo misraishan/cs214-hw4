@@ -30,7 +30,7 @@ void *firstFit(size_t size) {
     MemoryBlock *current = mm.head;
 
     while (current != NULL) {
-        if (current->size >= size + sizeof(MemoryBlock)) {
+        if (current->size >= size) {
             // Creates the new mem block and sets the new address by adding the size of the current block
             MemoryBlock *newBlock = (MemoryBlock *)((char *)current + size + sizeof(MemoryBlock));
 
@@ -38,6 +38,7 @@ void *firstFit(size_t size) {
             newBlock->next = current->next;
             current->size = size;
             current->next = newBlock;
+            mm.size -= sizeof(MemoryBlock);
 
 //            printf("Allocated %d bytes at %p using first-fit algorithm.\n", size, current);
             return current;
@@ -97,12 +98,14 @@ void* mymalloc(size_t size) {
 // TODO: REMOVE THIS FUNCTION BEFORE SUBMISSION
 void printHeap() {
     MemoryBlock *current = mm.head;
-    printf("\n\nHeap: \n");
     while (current != NULL) {
-        printf("Block size: %zu, Address: %p, Next: %p\n", current->size, current, current->next);
+        if (current->size > 0) {
+            printf("Allocated block of size %zu\n", current->size);
+        } else {
+            printf("Free region of size %zu\n", current->size);
+        }
         current = current->next;
     }
-    printf("\n\n");
 }
 
 void *findBlock(void *ptr) {
@@ -118,8 +121,34 @@ void *findBlock(void *ptr) {
     return NULL;
 }
 
+void coalesce(MemoryBlock *ptr) {
+    if (ptr == NULL) {
+        return;
+    }
+
+    MemoryBlock *current = mm.head;
+    MemoryBlock *prev = NULL;
+
+    while (current != NULL) {
+        if (current == ptr) {
+            if (prev != NULL && prev->size < 0) {
+                prev->size += current->size + sizeof(MemoryBlock);
+                prev->next = current->next;
+                mm.size += sizeof(MemoryBlock);
+            }
+            if (current->next != NULL && current->next->size < 0) {
+                current->size += current->next->size + sizeof(MemoryBlock);
+                current->next = current->next->next;
+                mm.size += sizeof(MemoryBlock);
+            }
+            return;
+        }
+        prev = current;
+        current = current->next;
+    }
+}
+
 void myfree(void *ptr) {
-    // Check if the memory manager has been initialized
     if (mm.head == NULL) {
         printf("Error: Memory manager is not initialized\n");
         return;
@@ -134,8 +163,10 @@ void myfree(void *ptr) {
     MemoryBlock *prev = NULL;
     MemoryBlock *ptrBlock = findBlock(ptr);
 
+//        printf("Freeing block at %p with size:%zu\n", ptrBlock, ptrBlock->size);
+
     while (current != NULL) {
-        if (current == ptr) {
+        if (current == ptrBlock) {
 //            printf("Freeing %zu bytes at %p\n", current->size, current);
             if (prev != NULL) {
                 prev->next = current->next;
@@ -146,6 +177,7 @@ void myfree(void *ptr) {
             current->size = 0;
             current = NULL;
             // printHeap();
+            coalesce(ptrBlock);
             ptrBlock = NULL;
             return;
         }

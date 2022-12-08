@@ -21,17 +21,11 @@ void testFirstFit() {
     myfree(ptr2);
     myfree(ptr3);
 
-    // Print the addresses of the allocated blocks
-    printf("ptr1 = %p\n", ptr1);
-    printf("ptr2 = %p\n", ptr2);
-    printf("ptr3 = %p\n", ptr3);
+//    printHeap();
 
 
-//    mycleanup();
-
-    // Free some memory
-    /*myfree(ptr2);
-    myfree(ptr3);
+/*
+    mycleanup();
 
     // Reallocate some memory
     void *ptr4 = myrealloc(ptr1, 400);
