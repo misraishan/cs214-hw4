@@ -105,6 +105,19 @@ void printHeap() {
     printf("\n\n");
 }
 
+void *findBlock(void *ptr) {
+    MemoryBlock *current = mm.head;
+
+    while (current != NULL) {
+        if (current == ptr) {
+            return current;
+        }
+        current = current->next;
+    }
+
+    return NULL;
+}
+
 void myfree(void *ptr) {
     // Check if the memory manager has been initialized
     if (mm.head == NULL) {
@@ -119,6 +132,7 @@ void myfree(void *ptr) {
 
     MemoryBlock *current = mm.head;
     MemoryBlock *prev = NULL;
+    MemoryBlock *ptrBlock = findBlock(ptr);
 
     while (current != NULL) {
         if (current == ptr) {
@@ -132,7 +146,7 @@ void myfree(void *ptr) {
             current->size = 0;
             current = NULL;
             // printHeap();
-            ptr = NULL;
+            ptrBlock = NULL;
             return;
         }
 
