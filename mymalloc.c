@@ -94,7 +94,7 @@ void* mymalloc(size_t size) {
 }
 
 void myfree(void *ptr) {
-    // Check if the memory manager has been initialized
+/*    // Check if the memory manager has been initialized
     if (mm.head == NULL) {
         printf("Error: Memory manager is not initialized\n");
         return;
@@ -119,7 +119,7 @@ void myfree(void *ptr) {
         current = current->next;
     }
 
-    printf("Error: Pointer is not valid\n");
+    printf("Error: Pointer is not valid\n");*/
 }
 
 void* myrealloc(void *ptr, size_t size) {
