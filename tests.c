@@ -2,21 +2,19 @@
 #include "mymalloc.h"
 
 void testFirstFit() {
-    // Initialize the memory manager
+    printf("Tests for first fit algo:\n");
+
     myinit(0); // Use first-fit algorithm
 
-    // Allocate some memory
     void *ptr1 = mymalloc(100);
     void *ptr2 = mymalloc(200);
     void *ptr3 = mymalloc(300);
 
-    // Print the addresses of the allocated blocks
     printf("ptr1 = %p\n", ptr1);
     printf("ptr2 = %p\n", ptr2);
     printf("ptr3 = %p\n", ptr3);
 
 //    printHeap();
-    // Free the memory
     myfree(ptr1);
     myfree(ptr2);
     myfree(ptr3);

@@ -8,6 +8,8 @@ void *firstFit(size_t size);
 void *nextFit(size_t size);
 void *bestFit(size_t size);
 
+static char heap[1024 * 1024];
+
 void myinit(int algorithm) {
 
     // Check if algorithm is not 0 1 or 2
@@ -18,7 +20,7 @@ void myinit(int algorithm) {
 
     // Create the 1 MB heap
     mm.size = 1024 * 1024;
-    mm.head = (MemoryBlock *) malloc(mm.size);
+    mm.head = (MemoryBlock *) heap;
     mm.allocAlg = algorithm;
 
     // Set the size of the first block
