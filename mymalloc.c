@@ -9,6 +9,7 @@ void *nextFit(size_t size);
 void *bestFit(size_t size);
 
 void myinit(int algorithm) {
+
     // Check if algorithm is not 0 1 or 2
     if (algorithm < 0 || algorithm > 2) {
         printf("Invalid algorithm. Please choose 0, 1, or 2.\n");
@@ -32,14 +33,14 @@ void *firstFit(size_t size) {
         if (current->size >= size + sizeof(MemoryBlock)) {
             // Creates the new mem block and sets the new address by adding the size of the current block
             MemoryBlock *newBlock = (MemoryBlock *)((char *)current + size + sizeof(MemoryBlock));
+            printf("Allocating %zu bytes at %p\n", size, current);
 
             newBlock->size = current->size - size - sizeof(MemoryBlock);
             newBlock->next = current->next;
-            current->size = size;
+            mm.size = mm.size - size - sizeof(MemoryBlock);
             current->next = newBlock;
 
-//            printf("Allocated %d bytes at %p using first-fit algorithm.\n", size, current);
-            return current;
+            return (void*) (current + sizeof(MemoryBlock));
         }
         current = current->next;
     }
@@ -70,7 +71,6 @@ void* mymalloc(size_t size) {
     // Turn into 8 byte aligned
     if (size % 8 != 0) {
         size = size + 8 - (size % 8);
-//        printf("Adjusted size to %d bytes\n", size);
     }
 
 //    printf("Memory manager size is: %d\n", mm.head->size);
