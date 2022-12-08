@@ -1,0 +1,7 @@
+*
+!.gitignore
+!CMakeLists.txt
+!README.md
+!mymalloc.c
+!mymalloc.h
+!tests.c
