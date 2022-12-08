@@ -15,6 +15,17 @@ void testFirstFit() {
     printf("ptr2 = %p\n", ptr2);
     printf("ptr3 = %p\n", ptr3);
 
+    // Free the memory
+    myfree(ptr1);
+    myfree(ptr2);
+    myfree(ptr3);
+
+    // Print the addresses of the allocated blocks
+    printf("ptr1 = %p\n", ptr1);
+    printf("ptr2 = %p\n", ptr2);
+    printf("ptr3 = %p\n", ptr3);
+
+
 //    mycleanup();
 
     // Free some memory
