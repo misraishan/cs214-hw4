@@ -24,6 +24,7 @@ void *mymalloc(size_t size);
 void myfree(void* ptr);
 void *myrealloc(void* ptr, size_t size);
 void mycleanup();
+void printHeap(); // TODO: REMOVE. THIS IS ONLY FOR DEBUGGING PURPOSES.
 
 #endif
 

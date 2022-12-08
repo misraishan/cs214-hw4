@@ -33,14 +33,14 @@ void *firstFit(size_t size) {
         if (current->size >= size + sizeof(MemoryBlock)) {
             // Creates the new mem block and sets the new address by adding the size of the current block
             MemoryBlock *newBlock = (MemoryBlock *)((char *)current + size + sizeof(MemoryBlock));
-            printf("Allocating %zu bytes at %p\n", size, current);
 
             newBlock->size = current->size - size - sizeof(MemoryBlock);
             newBlock->next = current->next;
-            mm.size = mm.size - size - sizeof(MemoryBlock);
+            current->size = size;
             current->next = newBlock;
 
-            return (void*) (current + sizeof(MemoryBlock));
+//            printf("Allocated %d bytes at %p using first-fit algorithm.\n", size, current);
+            return current;
         }
         current = current->next;
     }
@@ -76,7 +76,7 @@ void* mymalloc(size_t size) {
 //    printf("Memory manager size is: %d\n", mm.head->size);
     // Check if the size is too large
     if (size > mm.size - sizeof(MemoryBlock)) {
-        printf("Size is: %d\n", size);
+//        printf("Size is: %d\n", size);
         printf("Error: Requested size is too large\n");
         return NULL;
     }
@@ -93,8 +93,20 @@ void* mymalloc(size_t size) {
     }
 }
 
+// THIS IS ONLY FOR DEBUGGING PURPOSES
+// TODO: REMOVE THIS FUNCTION BEFORE SUBMISSION
+void printHeap() {
+    MemoryBlock *current = mm.head;
+    printf("\n\nHeap: \n");
+    while (current != NULL) {
+        printf("Block size: %zu, Address: %p, Next: %p\n", current->size, current, current->next);
+        current = current->next;
+    }
+    printf("\n\n");
+}
+
 void myfree(void *ptr) {
-/*    // Check if the memory manager has been initialized
+    // Check if the memory manager has been initialized
     if (mm.head == NULL) {
         printf("Error: Memory manager is not initialized\n");
         return;
@@ -110,8 +122,17 @@ void myfree(void *ptr) {
 
     while (current != NULL) {
         if (current == ptr) {
-            prev->next = current->next;
+//            printf("Freeing %zu bytes at %p\n", current->size, current);
+            if (prev != NULL) {
+                prev->next = current->next;
+            } else {
+                mm.head = current->next;
+            }
+            current->next = NULL;
+            current->size = 0;
             current = NULL;
+            // printHeap();
+            ptr = NULL;
             return;
         }
 
@@ -119,7 +140,7 @@ void myfree(void *ptr) {
         current = current->next;
     }
 
-    printf("Error: Pointer is not valid\n");*/
+    printf("Error: Pointer is not valid\n");
 }
 
 void* myrealloc(void *ptr, size_t size) {
