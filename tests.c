@@ -22,9 +22,11 @@ void testFirstFit() {
     /*myfree(ptr1);
     myfree(ptr2);
     myfree(ptr3);*/
-    mycleanup();
 
+    printf("My cleanup\n");
+    mycleanup();
     printHeap(); // Should print nothing!
+    printf("If you 'my cleanup' above this then that function works\n");
 }
 
 
