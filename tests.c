@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include "mymalloc.h"
 
 void testFirstFit() {
@@ -14,12 +15,14 @@ void testFirstFit() {
     printf("ptr2 = %p\n", ptr2);
     printf("ptr3 = %p\n", ptr3);
 
-//    printHeap();
-    myfree(ptr1);
-    myfree(ptr2);
-    myfree(ptr3);
+    printHeap();
 
-//    printHeap();
+    // Free the blocks
+    /*myfree(ptr1);
+    myfree(ptr2);
+    myfree(ptr3);*/
+
+    printHeap();
 
 
 /*

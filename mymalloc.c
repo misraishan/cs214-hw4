@@ -11,6 +11,7 @@ void *bestFit(size_t size);
 static char heap[1024 * 1024];
 
 void myinit(int algorithm) {
+//    printf("heap address: %p\n", heap); // Prints out the address of the heap for testing purposes
 
     // Check if algorithm is not 0 1 or 2
     if (algorithm < 0 || algorithm > 2) {
@@ -31,24 +32,30 @@ void myinit(int algorithm) {
 void *firstFit(size_t size) {
     MemoryBlock *current = mm.head;
 
-    while (current != NULL) {
-        if (current->size >= size) {
-            // Creates the new mem block and sets the new address by adding the size of the current block
-            MemoryBlock *newBlock = (MemoryBlock *)((char *)current + size + sizeof(MemoryBlock));
-
-            newBlock->size = current->size - size - sizeof(MemoryBlock);
-            newBlock->next = current->next;
-            current->size = size;
-            current->next = newBlock;
-            mm.size -= sizeof(MemoryBlock);
-
-//            printf("Allocated %d bytes at %p using first-fit algorithm.\n", size, current);
-            return current;
-        }
+    // Find the first block that is large enough to satisfy the request
+    // Return null if nothing found
+    while (current != NULL && current->size < size + sizeof(MemoryBlock)) {
         current = current->next;
     }
 
-    return NULL;
+    if (current == NULL) {
+        return NULL;
+    }
+
+    // Allocate memory for the new block and cast it to a MemoryBlock
+    // Prof said there would be a lot of type casting so I guess this is where he was referring to?
+    MemoryBlock *newBlock = (MemoryBlock *)((char *)current + size + sizeof(MemoryBlock));
+
+    // Update the stuff in the new block, and the stuff in the current block
+    newBlock->next = current->next;
+    newBlock->size = current->size - size - sizeof(MemoryBlock);
+    current->size = size;
+    current->next = newBlock;
+
+    // Decrease the size of the heap
+    mm.size -= sizeof(MemoryBlock);
+
+    return current;
 }
 
 void *nextFit(size_t size) {
@@ -101,95 +108,72 @@ void* mymalloc(size_t size) {
 void printHeap() {
     MemoryBlock *current = mm.head;
     while (current != NULL) {
-        if (current->size > 0) {
-            printf("Allocated block of size %zu\n", current->size);
-        } else {
-            printf("Free region of size %zu\n", current->size);
-        }
+        printf("Block size: %zu\n", current->size);
         current = current->next;
+    }
+}
+
+void coalesce(MemoryBlock *block) {
+    // Coalesce the block with adjacent free blocks
+    MemoryBlock *prev = NULL;
+    MemoryBlock *next = mm.head;
+    while (next != NULL && next < block) {
+        prev = next;
+        next = next->next;
+    }
+
+    // Coalesce with the previous block (if it exists and is free)
+    if (prev != NULL && prev->next == NULL) {
+        prev->next = next;
+        prev->size += block->size + sizeof(MemoryBlock);
+    } else {
+        // Set the block as free
+        block->next = NULL;
+
+        // Insert the block into the free list
+        if (prev == NULL) {
+            // Insert at the beginning of the list
+            block->next = mm.head;
+            mm.head = block;
+        } else {
+            prev->next = block;
+            block->next = next;
+        }
     }
 }
 
 void *findBlock(void *ptr) {
+    // Find the block that contains the pointer
     MemoryBlock *current = mm.head;
-
-    while (current != NULL) {
-        if (current == ptr) {
-            return current;
-        }
+    printf("ptr: %p\n", ptr);
+    while (current != ((char *) ptr)) {
         current = current->next;
     }
 
-    return NULL;
-}
-
-void coalesce(MemoryBlock *ptr) {
-    if (ptr == NULL) {
-        return;
+    // Check if the block was found
+    if (current == NULL) {
+        printf("Error: Block not found\n");
+        return NULL;
     }
 
-    MemoryBlock *current = mm.head;
-    MemoryBlock *prev = NULL;
-
-    while (current != NULL) {
-        if (current == ptr) {
-            if (prev != NULL && prev->size < 0) {
-                prev->size += current->size + sizeof(MemoryBlock);
-                prev->next = current->next;
-                mm.size += sizeof(MemoryBlock);
-            }
-            if (current->next != NULL && current->next->size < 0) {
-                current->size += current->next->size + sizeof(MemoryBlock);
-                current->next = current->next->next;
-                mm.size += sizeof(MemoryBlock);
-            }
-            return;
-        }
-        prev = current;
-        current = current->next;
-    }
+    return current;
 }
 
 void myfree(void *ptr) {
-    if (mm.head == NULL) {
-        printf("Error: Memory manager is not initialized\n");
-        return;
-    }
-
+    // Check if the pointer is NULL
     if (ptr == NULL) {
-        printf("Error: Pointer is NULL\n");
         return;
     }
 
-    MemoryBlock *current = mm.head;
-    MemoryBlock *prev = NULL;
-    MemoryBlock *ptrBlock = findBlock(ptr);
+    MemoryBlock *foundBlock = findBlock(ptr);
 
-//        printf("Freeing block at %p with size:%zu\n", ptrBlock, ptrBlock->size);
-
-    while (current != NULL) {
-        if (current == ptrBlock) {
-//            printf("Freeing %zu bytes at %p\n", current->size, current);
-            if (prev != NULL) {
-                prev->next = current->next;
-            } else {
-                mm.head = current->next;
-            }
-            current->next = NULL;
-            current->size = 0;
-            current = NULL;
-            // printHeap();
-            coalesce(ptrBlock);
-            ptrBlock = NULL;
-            return;
-        }
-
-        prev = current;
-        current = current->next;
+    if (foundBlock == NULL) {
+        return;
     }
 
-    printf("Error: Pointer is not valid\n");
+    coalesce(foundBlock);
 }
+
 
 void* myrealloc(void *ptr, size_t size) {
 
