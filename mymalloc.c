@@ -181,4 +181,8 @@ void* myrealloc(void *ptr, size_t size) {
 
 
 void mycleanup() {
+    mm.head = NULL;
+    mm.lastSearched = NULL;
+    mm.allocAlg = 0;
+    mm.size = 0;
 }

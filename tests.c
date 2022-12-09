@@ -17,28 +17,14 @@ void testFirstFit() {
 
     printHeap();
 
+    // TODO: Fix Free & make realloc
     // Free the blocks
     /*myfree(ptr1);
     myfree(ptr2);
     myfree(ptr3);*/
-
-    printHeap();
-
-
-/*
     mycleanup();
 
-    // Reallocate some memory
-    void *ptr4 = myrealloc(ptr1, 400);
-    void *ptr5 = myrealloc(ptr4, 500);
-
-    // Print the addresses of the reallocated blocks
-    printf("ptr4 = %p\n", ptr4);
-    printf("ptr5 = %p\n", ptr5);
-
-    // Clean up the memory manager
-    mycleanup();*/
-
+    printHeap(); // Should print nothing!
 }
 
 
