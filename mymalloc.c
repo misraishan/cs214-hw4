@@ -4,7 +4,7 @@
 // Global memory manager
 MemoryManager mm;
 
-void *firstFit(size_t size);
+void *firstFit(MemoryBlock *head, size_t size);
 void *nextFit(size_t size);
 void *bestFit(size_t size);
 
@@ -35,8 +35,8 @@ void myinit(int algorithm) {
     mm.head->next = NULL;
 }
 
-void *firstFit(size_t size) {
-    MemoryBlock *current = mm.head;
+void *firstFit(MemoryBlock *head, size_t size) {
+    MemoryBlock *current = head;
 
     // Find the first block that is large enough to satisfy the request
     // Return null if nothing found
@@ -49,7 +49,7 @@ void *firstFit(size_t size) {
     }
 
     // Allocate memory for the new block and cast it to a MemoryBlock
-    // Prof said there would be a lot of type casting so I guess this is where he was referring to?
+    // Prof said there would be a lot of type casting, so I guess this is where he was referring to?
     MemoryBlock *newBlock = (MemoryBlock *)((char *)current + size + sizeof(MemoryBlock));
 
     // Update the stuff in the new block, and the stuff in the current block
@@ -65,16 +65,62 @@ void *firstFit(size_t size) {
 }
 
 void *nextFit(size_t size) {
+/*
+ * Store the location of the last placed memory block in mm
+ * When a new block is requested, start searching from the last placed block
+ * If the last placed block is NULL, start searching from the beginning of the heap
+ * */
+
+    MemoryBlock *current = mm.head;
+
+    if (mm.lastSearched == NULL) {
+        mm.lastSearched = mm.head;
+    }
+    current = mm.lastSearched;
+
+    MemoryBlock *newBlock = firstFit(current, size);
+    mm.lastSearched = newBlock - sizeof(MemoryBlock);
+
+    return newBlock;
 }
 
 void *bestFit(size_t size) {
 /*
- * Finds the smallest amount of memory where it can take up then coaleses?
- * Loop through the entire heap and keep track of smallest amount of memory it can take up
+ * Finds the smallest amount of memory where it can take up then coalesces?
+ * Loop through the entire heap and keep track of the smallest amount of memory it can take up
  * while being larger than or equal to the size passed in
  *
- * It's not time efficent but its space efficent
+ * It's not time efficient but its space efficient
  */
+    MemoryBlock *current = mm.head;
+    MemoryBlock *bestFit = NULL;
+
+    while (current != NULL) {
+        if (current->size >= size + sizeof(MemoryBlock)) {
+            if (bestFit == NULL) {
+                bestFit = current;
+            } else if (current->size < bestFit->size) {
+                bestFit = current;
+            }
+        }
+        current = current->next;
+    }
+
+    if (bestFit == NULL) {
+        printf("No best fit found\n");
+        return NULL;
+    }
+
+    MemoryBlock *newBlock = (MemoryBlock *)((char *)bestFit + size + sizeof(MemoryBlock));
+    newBlock->next = bestFit->next;
+    newBlock->size = bestFit->size - size - sizeof(MemoryBlock);
+//    newBlock->size = bestFit->size - newBlock->size + sizeof(MemoryBlock);
+    bestFit->size = size;
+    bestFit->next = newBlock;
+
+    mm.size -= sizeof(MemoryBlock);
+
+    return bestFit + sizeof(MemoryBlock);
 }
 
 
@@ -104,7 +150,8 @@ void* mymalloc(size_t size) {
     }
 
     if (mm.allocAlgo == FIRST_FIT) {
-        return firstFit(size);
+        MemoryBlock *head = mm.head;
+        return firstFit(head, size);
     } else if (mm.allocAlgo == NEXT_FIT) {
         return nextFit(size);
     } else if (mm.allocAlgo == BEST_FIT) {
@@ -120,7 +167,7 @@ void* mymalloc(size_t size) {
 void printHeap() {
     MemoryBlock *current = mm.head;
     while (current != NULL) {
-        printf("Location: %p\tBlock size: %zu\tValue is: %d\n", current, current->size, current[sizeof(MemoryBlock)]);
+//        printf("Location: %p\tBlock size: %zu\tValue is: %d\n", current, current->size, current[sizeof(MemoryBlock)]);
         current = current->next;
     }
 }
@@ -161,7 +208,7 @@ void *findBlock(void *ptr) {
 //    printf("Current: %p\n", &current);
 //    printf("char casted ptr: %p\n", (ptr - sizeof(MemoryBlock) - 0x108));
     while (current != NULL && current != (ptr - sizeof(MemoryBlock) - 0x108)) {
-//        printf("current: %p\tptr: %p\n", current, ptr - sizeof(MemoryBlock) - 0x108);
+//        printf("current: %p\t ptr: %p\n", current, ptr - sizeof(MemoryBlock) - 0x108);
         current = current->next;
     }
 
@@ -192,7 +239,12 @@ void myfree(void *ptr) {
 
 
 void* myrealloc(void *ptr, size_t size) {
-
+/*
+ * Grabs the data from ptr
+ * Frees it then creates a new block with size
+ * Copies the data from the old block to the new block
+ * returns new block
+ * */
 }
 
 
