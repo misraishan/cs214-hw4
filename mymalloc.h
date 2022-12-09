@@ -10,12 +10,18 @@ typedef struct MemoryBlock {
     struct MemoryBlock *next; // Pointer to the next block in the list
 } MemoryBlock;
 
+enum allocAlgo {
+    FIRST_FIT,
+    BEST_FIT,
+    NEXT_FIT
+};
+
 // Struct for the memory manager
 typedef struct MemoryManager {
     MemoryBlock *head; // Pointer to the first block in the list
     MemoryBlock *lastSearched; // Pointer to the last block searched (for next-fit algorithm)
-    int allocAlg; // Allocation algorithm (0 = first fit, 1 = next fit, 2 = best fit)
     size_t size; // Size of the memory manager
+    enum allocAlgo allocAlgo; // Allocation algorithm
 } MemoryManager;
 
 // Function declarations

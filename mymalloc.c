@@ -22,7 +22,13 @@ void myinit(int algorithm) {
     // Create the 1 MB heap
     mm.size = 1024 * 1024;
     mm.head = (MemoryBlock *) heap;
-    mm.allocAlg = algorithm;
+    if (algorithm == 0) {
+        mm.allocAlgo = FIRST_FIT;
+    } else if (algorithm == 1) {
+        mm.allocAlgo = NEXT_FIT;
+    } else {
+        mm.allocAlgo = BEST_FIT;
+    }
 
     // Set the size of the first block
     mm.head->size = mm.size;
@@ -48,21 +54,27 @@ void *firstFit(size_t size) {
 
     // Update the stuff in the new block, and the stuff in the current block
     newBlock->next = current->next;
-    newBlock->size = current->size - size - sizeof(MemoryBlock);
+    newBlock->size = current->size - newBlock->size + sizeof(MemoryBlock);
     current->size = size;
     current->next = newBlock;
 
     // Decrease the size of the heap
     mm.size -= sizeof(MemoryBlock);
 
-    return current;
+    return current + sizeof(MemoryBlock);
 }
 
 void *nextFit(size_t size) {
 }
 
 void *bestFit(size_t size) {
-
+/*
+ * Finds the smallest amount of memory where it can take up then coaleses?
+ * Loop through the entire heap and keep track of smallest amount of memory it can take up
+ * while being larger than or equal to the size passed in
+ *
+ * It's not time efficent but its space efficent
+ */
 }
 
 
@@ -91,11 +103,11 @@ void* mymalloc(size_t size) {
         return NULL;
     }
 
-    if (mm.allocAlg == 0) {
+    if (mm.allocAlgo == FIRST_FIT) {
         return firstFit(size);
-    } else if (mm.allocAlg == 1) {
+    } else if (mm.allocAlgo == NEXT_FIT) {
         return nextFit(size);
-    } else if (mm.allocAlg == 2) {
+    } else if (mm.allocAlgo == BEST_FIT) {
         return bestFit(size);
     } else {
         printf("Error: Invalid allocation algorithm\n");
@@ -108,7 +120,7 @@ void* mymalloc(size_t size) {
 void printHeap() {
     MemoryBlock *current = mm.head;
     while (current != NULL) {
-        printf("Block size: %zu\n", current->size);
+        printf("Location: %p\tBlock size: %zu\tValue is: %d\n", current, current->size, current[sizeof(MemoryBlock)]);
         current = current->next;
     }
 }
@@ -145,16 +157,20 @@ void coalesce(MemoryBlock *block) {
 void *findBlock(void *ptr) {
     // Find the block that contains the pointer
     MemoryBlock *current = mm.head;
-    printf("ptr: %p\n", ptr);
-    while (current != ((char *) ptr)) {
+////    printf("ptr: %p\n", ptr - sizeof(MemoryBlock));
+//    printf("Current: %p\n", &current);
+//    printf("char casted ptr: %p\n", (ptr - sizeof(MemoryBlock) - 0x108));
+    while (current != NULL && current != (ptr - sizeof(MemoryBlock) - 0x108)) {
+//        printf("current: %p\tptr: %p\n", current, ptr - sizeof(MemoryBlock) - 0x108);
         current = current->next;
     }
 
-    // Check if the block was found
     if (current == NULL) {
         printf("Error: Block not found\n");
         return NULL;
     }
+
+    printf("Success\n");
 
     return current;
 }
@@ -171,7 +187,7 @@ void myfree(void *ptr) {
         return;
     }
 
-    coalesce(foundBlock);
+//    coalesce(foundBlock);
 }
 
 
@@ -183,6 +199,6 @@ void* myrealloc(void *ptr, size_t size) {
 void mycleanup() {
     mm.head = NULL;
     mm.lastSearched = NULL;
-    mm.allocAlg = 0;
+    mm.allocAlgo = 0;
     mm.size = 0;
 }
