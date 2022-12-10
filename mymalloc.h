@@ -3,11 +3,14 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 // Struct for a memory block
 typedef struct MemoryBlock {
     size_t size; // Size of the block, including the block header
     struct MemoryBlock *next; // Pointer to the next block in the list
+    struct MemoryBlock *prev; // Pointer to the previous block in the list
+    bool isFree; // Whether the block is free or not
 } MemoryBlock;
 
 enum allocAlgo {
