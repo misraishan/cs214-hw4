@@ -10,6 +10,7 @@ typedef struct MemoryBlock {
     size_t size; // Size of the block, including the block header
     struct MemoryBlock *next; // Pointer to the next block in the list
     struct MemoryBlock *prev; // Pointer to the previous block in the list
+    struct MemoryBlock *nextFree; // Pointer to the next free block in the list
     bool isFree; // Whether the block is free or not
 } MemoryBlock;
 
@@ -25,6 +26,7 @@ typedef struct MemoryManager {
     MemoryBlock *lastSearched; // Pointer to the last block searched (for next-fit algorithm)
     size_t size; // Size of the memory manager
     enum allocAlgo allocAlgo; // Allocation algorithm
+    MemoryBlock *freeList; // Pointer to the first free block in the list
 } MemoryManager;
 
 // Function declarations
@@ -34,6 +36,7 @@ void myfree(void* ptr);
 void *myrealloc(void* ptr, size_t size);
 void mycleanup();
 void printHeap(); // TODO: REMOVE. THIS IS ONLY FOR DEBUGGING PURPOSES.
+unsigned int getSize(); // TODO: REMOVE. THIS IS ONLY FOR DEBUGGING PURPOSES.
 
 #endif
 

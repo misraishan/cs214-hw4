@@ -4,4 +4,6 @@
 !README.md
 !mymalloc.c
 !mymalloc.h
-!tests.c
+!tests
+!Makefile
+!main.c

@@ -1,6 +1,3 @@
-cmake_minimum_required(VERSION 3.24)
-project(hw4_lib C)
-
-set(CMAKE_C_STANDARD 99)
-
-add_library(hw4_lib mymalloc.c tests.c)
+project(mymalloc)
+add_library(hw4 mymalloc.h mymalloc.c) #link against pthreads and my_lib
+add_executable(hw4test mymalloc.c main.c)

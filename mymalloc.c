@@ -1,26 +1,36 @@
 #include "mymalloc.h"
 #include <string.h>
 
-// Global memory manager
-MemoryManager mm;
-
 void *firstFit(MemoryBlock *head, size_t size);
 void *nextFit(size_t size);
 void *bestFit(size_t size);
 
+// Global memory manager
+static MemoryManager mm;
+
+static char heap[1024 * 1024];
+
+unsigned int getSize() {
+    return mm.size;
+}
+
+// Global memory manager
+static MemoryManager mm;
+
+// Create a 1 MB heap as a static variable
 static char heap[1024 * 1024];
 
 void myinit(int algorithm) {
-
     // Check if algorithm is not 0 1 or 2
     if (algorithm < 0 || algorithm > 2) {
         printf("Invalid algorithm. Please choose 0, 1, or 2.\n");
         exit(1);
     }
 
-    // Create the 1 MB heap
-    mm.size = 1024 * 1024;
+    // Set the head to point to the beginning of the heap
     mm.head = (MemoryBlock *) heap;
+
+    // Set the allocation algorithm
     if (algorithm == 0) {
         mm.allocAlgo = FIRST_FIT;
     } else if (algorithm == 1) {
@@ -30,7 +40,7 @@ void myinit(int algorithm) {
     }
 
     // Set the size of the first block
-    mm.head->size = mm.size;
+    mm.head->size = sizeof(heap);
     mm.head->next = NULL;
     mm.head->prev = NULL;
     mm.head->isFree = true;
@@ -41,12 +51,8 @@ void *firstFit(MemoryBlock *head, size_t size) {
 
     // Find the first block that is large enough to satisfy the request
     // Return null if nothing found
-    while (current != NULL && current->size < size + sizeof(MemoryBlock)) {
-        current = current->next;
-    }
-
     while(current != NULL) { //while loop is not null
-        if(current->size < size + sizeof(MemoryBlock ) || current->isFree == false) { //is current size < size or is current allocated?
+        if(current->size < size + sizeof(MemoryBlock) || current->isFree == false) { //is current size < size or is current allocated?
             current = current->next;
             continue;
         }
@@ -59,7 +65,10 @@ void *firstFit(MemoryBlock *head, size_t size) {
 
     // Allocate memory for the new block and cast it to a MemoryBlock
     // Prof said there would be a lot of type casting, so I guess this is where he was referring to?
-    MemoryBlock *newBlock = (MemoryBlock *)((char *)current + size + sizeof(MemoryBlock));
+    printf("Allocating %d bytes at %p\n", size, current);
+    printf("Size of MemoryBlock is %d bytes\n", sizeof(MemoryBlock));
+    printf("Size of Current block is %d bytes\n", sizeof(current));
+    MemoryBlock *newBlock = (MemoryBlock *) ((char *) current + sizeof(MemoryBlock) + size);
 
     // Update the stuff in the new block, and the stuff in the current block
     newBlock->prev = current;
@@ -69,7 +78,7 @@ void *firstFit(MemoryBlock *head, size_t size) {
         current->next->prev = newBlock;
     }
 
-    newBlock->size = current->size - newBlock->size - sizeof(MemoryBlock);
+    newBlock->size = current->size - size;
     current->next = newBlock; //added thing for checking
     newBlock->isFree = true; //free memory
     current->size = size;
@@ -84,13 +93,13 @@ void *nextFit(size_t size) {
  * When a new block is requested, start searching from the last placed block
  * If the last placed block is NULL, start searching from the beginning of the heap
  * */
-
-    MemoryBlock *current = mm.head;
+    MemoryBlock *current = mm.lastSearched;
 
     if (mm.lastSearched == NULL) {
-        mm.lastSearched = mm.head;
+        current = mm.head;
+    } else {
+        current = mm.lastSearched;
     }
-    current = mm.lastSearched;
 
     MemoryBlock *newBlock = firstFit(current, size);
     mm.lastSearched = newBlock - sizeof(MemoryBlock);
@@ -179,7 +188,7 @@ void* mymalloc(size_t size) {
 void printHeap() {
     MemoryBlock *current = mm.head;
     while (current != NULL) {
-        printf("Location: %p\tBlock size: %zu\tValue is: %p\n", current, current->size, current[sizeof(MemoryBlock)]);
+        printf("Location: %p\tBlock size: %zu\tIs free?: %d\n", current, current->size, current->isFree);
         current = current->next;
     }
 }
@@ -190,19 +199,19 @@ void* findBlock(void* ptr) {
     //search for ptr
     while(current != NULL) {
         if(((char *) current + sizeof(MemoryBlock)) == (char *) ptr ) {
-            break;
+            // Check if the given pointer is within the bounds of this MemoryBlock
+            if (ptr < (void *)((char *)current + sizeof(MemoryBlock) + current->size)) {
+                break;
+            }
         }
         current = current->next;
     }
     return current;
 }
 
-//working? printing out the right values when adding and removing one block from the heap
 void coalesce(MemoryBlock *foundBlock) {
-
     int wasPrevFree = -1; // a simple check to see if we got through the first if statement, used when checking next
 
-    printf("check - 1\n");
     //check if previous exists and is free
     if(foundBlock->prev != NULL && foundBlock->prev->isFree == true) { //previous gets combines with foundBlock, making prev the new pointer
         wasPrevFree = 0;
@@ -214,25 +223,26 @@ void coalesce(MemoryBlock *foundBlock) {
         if(foundBlock->next != NULL) {
             foundBlock->next->prev = foundBlock->prev; //next->prev points to prev, final bit of cutting out foundBlock from linked list
         }
+
+        // Update mm.head if necessary
+        if (foundBlock == mm.head) {
+            mm.head = foundBlock->prev;
+        }
     }
 
     //check if next exists and is free
     if(foundBlock->next != NULL && foundBlock->next->isFree == true) {
-        printf("check - 2\n");
         if(wasPrevFree == 0) { //foundBlock is no longer a node / pointer
             foundBlock->prev->size += (foundBlock->next->size); //increase block size with size of next
-            foundBlock->prev->next = foundBlock->next->next; //prev->next points to next next
+            foundBlock->prev->next = foundBlock->next->next; //prev->next points to next's next
 
             if(foundBlock->next->next != NULL) {
                 foundBlock->next->next->prev = foundBlock->prev; // final bit of cutting out next from linked list
             }
         }
         else { //foundBlock is a pointer that combines with next
-            //printf("check - 3\n");
             foundBlock->size += (foundBlock->next->size); //increase block size with size of next
-            //printf("check - 4\n");
             foundBlock->next = foundBlock->next->next;
-            //printf("check - 5\n");
 
             if(foundBlock->next != NULL) {
                 foundBlock->next->prev = foundBlock;
@@ -241,9 +251,8 @@ void coalesce(MemoryBlock *foundBlock) {
     }
 }
 
-//working? see above HOWEVER WE NEED TO ADD AN EXPLICIT FREE LIST OF ALL FREE POINTERS (shouldn't be too hard?)
-void myfree(void* ptr) {
 
+void myfree(void* ptr) {
     MemoryBlock *head = mm.head;
 
     //did it initialize correctly?
@@ -275,18 +284,21 @@ void myfree(void* ptr) {
     //otherwise free and coalesce
     foundBlock->isFree = true; //set block as free
     coalesce(foundBlock);
+
+    // Add the freed block to the explicit free list
+    foundBlock->nextFree = mm.freeList;
+    mm.freeList = foundBlock;
 }
 
 
-
-void* myrealloc(void *ptr, size_t size) {
-/*
+/*void* myrealloc(void *ptr, size_t size) {
+*//*
  * Grabs the data from ptr
  * Frees it then creates a new block with size
  * Copies the data from the old block to the new block
  * returns new block
- * */
-}
+ * *//*
+}*/
 
 
 void mycleanup() {
@@ -294,4 +306,6 @@ void mycleanup() {
     mm.lastSearched = NULL;
     mm.allocAlgo = 0;
     mm.size = 0;
+
+    free(mm.head);
 }
