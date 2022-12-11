@@ -231,88 +231,43 @@ void printHeap() {
     }
 }
 
-void coalesce(MemoryBlock *foundBlock) {
-    int wasPrevFree = -1; // a simple check to see if we got through the first if statement, used when checking next
-
-    //check if previous exists and is free
-    if(foundBlock->prev != NULL && foundBlock->prev->isFree == true) { //previous gets combines with foundBlock, making prev the new pointer
-        wasPrevFree = 0;
-
-        //increase size of block and combine
-        foundBlock->prev->size += (foundBlock->size) + sizeof(MemoryBlock); //increase block size with size of block
-        foundBlock->prev->next = foundBlock->next; //prev->next points to next
-
-        if(foundBlock->next != NULL) {
-            foundBlock->next->prev = foundBlock->prev; //next->prev points to prev, final bit of cutting out foundBlock from linked list
-        }
-
-        // Update mm.head if necessary
-        if (foundBlock == mm.head) {
-            mm.head = foundBlock->prev;
-        }
+void myfree(void *ptr) {
+    // If ptr is NULL, myfree does nothing
+    if (ptr == NULL) {
+        return;
     }
 
-    //check if next exists and is free
-    if(foundBlock->next != NULL && foundBlock->next->isFree == true) {
-        if(wasPrevFree == 0) { //foundBlock is no longer a node / pointer
-            foundBlock->prev->size += (foundBlock->next->size) + sizeof(MemoryBlock); //increase block size with size of next
-            foundBlock->prev->next = foundBlock->next->next; //prev->next points to next's next
+    // Get the block header for the given pointer
+    MemoryBlock *block = (MemoryBlock *)((char *)ptr - sizeof(MemoryBlock));
 
-            if(foundBlock->next->next != NULL) {
-                foundBlock->next->next->prev = foundBlock->prev; // final bit of cutting out next from linked list
-            }
+    // Mark the block as free
+    block->isFree = true;
+
+    // Add the block to the free list
+    block->nextFree = mm.freeList;
+    mm.freeList = block;
+
+    // Try to coalesce with the previous block, if it exists and is free
+    if (block->prev != NULL && block->prev->isFree) {
+        MemoryBlock *prev = block->prev;
+        prev->size += block->size + sizeof(MemoryBlock);
+        prev->next = block->next;
+        if (block->next != NULL) {
+            block->next->prev = prev;
         }
-        else { //foundBlock is a pointer that combines with next
-            foundBlock->size += (foundBlock->next->size); //increase block size with size of next
-            foundBlock->next = foundBlock->next->next;
+        block = prev;
+    }
 
-            if(foundBlock->next != NULL) {
-                foundBlock->next->prev = foundBlock;
-            }
+    // Try to coalesce with the next block, if it exists and is free
+    if (block->next != NULL && block->next->isFree) {
+        MemoryBlock *next = block->next;
+        block->size += next->size + sizeof(MemoryBlock);
+        block->next = next->next;
+        if (next->next != NULL) {
+            next->next->prev = block;
         }
     }
 }
-
-
-void myfree(void* ptr) {
-    MemoryBlock *head = mm.head;
-
-    //did it initialize correctly?
-    if(head == NULL) {
-        printf("Error: Memory manager is not initialized\n");
-        return;
-    }
-
-    //is ptr null?
-    if(ptr == NULL) {
-        return;
-    }
-
-    //find block
-    MemoryBlock *foundBlock = findBlock(ptr);
-
-    //did we actually find a block?
-    if (foundBlock == NULL) {
-        printf("Error: could not find ptr\n");
-        return;
-    }
-
-    //is it already free?
-    if(foundBlock->isFree == true) {
-        printf("Error: already free\n");
-        return;
-    }
-
-    //otherwise free and coalesce
-    foundBlock->isFree = true; //set block as free
-    coalesce(foundBlock);
-
-    // Add the freed block to the explicit free list
-    foundBlock->nextFree = mm.freeList;
-    mm.freeList = foundBlock;
-}
-
-
 
 void *myrealloc(void *ptr, size_t size) {
 /*
