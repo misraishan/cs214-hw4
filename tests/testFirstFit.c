@@ -44,7 +44,13 @@ void testFirstFit() {
     printf("5 bytes freed\n");
     printHeap();
 
-    // TODO: include realloc...
+    single = myrealloc(single, 16);
+    printf("Realloc test, reallocating single to 16 bytes...\n");
+    printHeap();
+
+    printf("Freeing original char...\n");
+    myfree(single);
+    printHeap();
 
     mycleanup();
     printf("Heap cleaned up and has size of %d\n", getSize());
