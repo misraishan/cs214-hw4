@@ -2,7 +2,9 @@
 #include <string.h>
 
 void *firstFit(MemoryBlock *head, size_t size);
+
 void *nextFit(size_t size);
+
 void *bestFit(size_t size);
 
 // Global memory manager
@@ -10,6 +12,7 @@ static MemoryManager mm;
 
 static char heap[1024 * 1024];
 
+// TODO: REMOVE. THIS IS ONLY FOR DEBUGGING PURPOSES.
 unsigned int getSize() {
     return mm.size;
 }
@@ -46,14 +49,14 @@ void myinit(int algorithm) {
     mm.head->isFree = true;
 }
 
-void* findBlock(void* ptr) {
+void *findBlock(void *ptr) {
     MemoryBlock *current = mm.head;
 
     //search for ptr
-    while(current != NULL) {
-        if(((char *) current + sizeof(MemoryBlock)) == (char *) ptr ) {
+    while (current != NULL) {
+        if (((char *) current + sizeof(MemoryBlock)) == (char *) ptr) {
             // Check if the given pointer is within the bounds of this MemoryBlock
-            if (ptr < (void *)((char *)current + sizeof(MemoryBlock) + current->size)) {
+            if (ptr < (void *) ((char *) current + sizeof(MemoryBlock) + current->size)) {
                 break;
             }
         }
@@ -67,8 +70,9 @@ void *firstFit(MemoryBlock *head, size_t size) {
 
     // Find the first block that is large enough to satisfy the request
     // Return null if nothing found
-    while(current != NULL) { //while loop is not null
-        if(current->size < size + sizeof(MemoryBlock) || current->isFree == false) { //is current size < size or is current allocated?
+    while (current != NULL) { //while loop is not null
+        if (current->size < size + sizeof(MemoryBlock) ||
+            current->isFree == false) { //is current size < size or is current allocated?
             current = current->next;
             continue;
         }
@@ -87,7 +91,7 @@ void *firstFit(MemoryBlock *head, size_t size) {
     newBlock->prev = current;
     newBlock->next = current->next;
 
-    if(current->next != NULL) {
+    if (current->next != NULL) {
         current->next->prev = newBlock;
     }
 
@@ -97,7 +101,7 @@ void *firstFit(MemoryBlock *head, size_t size) {
     current->size = size;
     current->isFree = false; //allocated memory
 
-    return (char *)current + sizeof(MemoryBlock);
+    return (char *) current + sizeof(MemoryBlock);
 }
 
 void *nextFit(size_t size) {
@@ -114,8 +118,9 @@ void *nextFit(size_t size) {
         current = mm.lastSearched;
     }
 
-    while(current != NULL) { //while loop is not null
-        if(current->size < size + sizeof(MemoryBlock) || current->isFree == false) { //is current size < size or is current allocated?
+    while (current != NULL) { //while loop is not null
+        if (current->size < size + sizeof(MemoryBlock) ||
+            current->isFree == false) { //is current size < size or is current allocated?
             current = current->next;
             continue;
         }
@@ -134,7 +139,7 @@ void *nextFit(size_t size) {
     newBlock->prev = current;
     newBlock->next = current->next;
 
-    if(current->next != NULL) {
+    if (current->next != NULL) {
         current->next->prev = newBlock;
     }
 
@@ -144,7 +149,7 @@ void *nextFit(size_t size) {
     current->size = size;
     current->isFree = false; //allocated memory
 
-    return (char *)current + sizeof(MemoryBlock);
+    return (char *) current + sizeof(MemoryBlock);
 }
 
 void *bestFit(size_t size) {
@@ -160,10 +165,11 @@ void *bestFit(size_t size) {
 
     while (current != NULL) {
         if (current->size >= size + sizeof(MemoryBlock) && (current->isFree == true || (void *) current->isFree == NULL)) {
-            if (bestFit == NULL) {
+            if (bestFit == NULL || current->size < bestFit->size) {
                 bestFit = current;
-            } else if (current->size < bestFit->size) {
+            } else if (current->size == bestFit->size) {
                 bestFit = current;
+                break;
             }
         }
         current = current->next;
@@ -186,6 +192,7 @@ void *bestFit(size_t size) {
 
     return (char *) bestFit + sizeof(MemoryBlock);
 }
+
 
 void *mymalloc(size_t size) {
     // Check if the memory manager has been initialized
@@ -231,14 +238,14 @@ void printHeap() {
     }
 }
 
-void myfree(void *ptr) {
+/*void myfree(void *ptr) {
     // If ptr is NULL, myfree does nothing
     if (ptr == NULL) {
         return;
     }
 
     // Get the block header for the given pointer
-    MemoryBlock *block = (MemoryBlock *)((char *)ptr - sizeof(MemoryBlock));
+    MemoryBlock *block = (MemoryBlock *) ((char *) ptr - sizeof(MemoryBlock));
 
     // Mark the block as free
     block->isFree = true;
@@ -267,6 +274,59 @@ void myfree(void *ptr) {
             next->next->prev = block;
         }
     }
+}*/
+
+void coalesce(MemoryBlock *foundBlock) {
+    int wasPrevFree = -1; // a simple check to see if we got through the first if statement, used when checking next
+
+    if (foundBlock->prev != NULL && foundBlock->prev->isFree == true) {
+        MemoryBlock *prev = foundBlock->prev;
+        prev->size += foundBlock->size + sizeof(MemoryBlock);
+        prev->next = foundBlock->next;
+        if (foundBlock->next != NULL) {
+            foundBlock->next->prev = prev;
+        }
+        foundBlock = prev;
+        wasPrevFree = 1;
+    }
+
+    if (foundBlock->next != NULL && foundBlock->next->isFree == true) {
+        MemoryBlock *next = foundBlock->next;
+        foundBlock->size += next->size + sizeof(MemoryBlock);
+        foundBlock->next = next->next;
+        if (next->next != NULL) {
+            next->next->prev = foundBlock;
+        }
+    }
+
+    if (wasPrevFree == -1) {
+        foundBlock->isFree = true;
+    }
+
+    return;
+}
+
+
+void myfree(void* ptr) {
+    // If ptr is NULL, myfree does nothing
+    if (ptr == NULL) {
+        return;
+    }
+
+    // Get the block header for the given pointer
+    MemoryBlock *block = (MemoryBlock *) ((char *) ptr - sizeof(MemoryBlock));
+
+    // Mark the block as free
+    block->isFree = true;
+
+    // Add the block to the free list
+    block->nextFree = mm.freeList;
+    mm.freeList = block;
+
+    // Try to coalesce with the previous block, if it exists and is free
+    coalesce(block);
+
+    return;
 }
 
 void *myrealloc(void *ptr, size_t size) {
@@ -285,7 +345,7 @@ void *myrealloc(void *ptr, size_t size) {
         size = size + 8 - (size % 8);
     }
 
-    MemoryBlock *block = (MemoryBlock *)((char *)ptr - sizeof(MemoryBlock));
+    MemoryBlock *block = (MemoryBlock *) ((char *) ptr - sizeof(MemoryBlock));
     size_t newSize = size + sizeof(MemoryBlock);
 
     if (newSize == block->size || newSize < block->size) {
