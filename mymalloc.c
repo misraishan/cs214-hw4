@@ -44,23 +44,7 @@ void myinit(int algorithm) {
     mm.head->isFree = true;
     mm.freeList = mm.head;
     mm.lastSearched = mm.head;
-    mm.size = sizeof(mm.head);
-}
-
-void *findBlock(void *ptr) {
-    MemoryBlock *current = mm.head;
-
-    //search for ptr
-    while (current != NULL) {
-        if (((char *) current + sizeof(MemoryBlock)) == (char *) ptr) {
-            // Check if the given pointer is within the bounds of this MemoryBlock
-            if (ptr < (void *) ((char *) current + sizeof(MemoryBlock) + current->size)) {
-                break;
-            }
-        }
-        current = current->next;
-    }
-    return current;
+    mm.size = sizeof(char) * (1024 * 1024);
 }
 
 /*
@@ -122,7 +106,7 @@ void *nextFit(size_t size) {
  * When a new block is requested, start searching from the last placed block
  * If the last placed block is NULL, start searching from the beginning of the heap
  * */
-    MemoryBlock *current = mm.lastSearched;
+    MemoryBlock *current;
 
     if (mm.lastSearched == NULL) {
         current = mm.head;
@@ -202,7 +186,7 @@ void *bestFit(size_t size) {
         return (void *) ((char *) current + sizeof(MemoryBlock));
     }
 
-    MemoryBlock *newBlock = (MemoryBlock *)((char *)bestFit + size + sizeof(MemoryBlock));
+    MemoryBlock *newBlock = (MemoryBlock *) ((char *) bestFit + size + sizeof(MemoryBlock));
     newBlock->next = bestFit->next;
     newBlock->size = bestFit->size - size - sizeof(MemoryBlock);
     //  newBlock->size = bestFit->size - newBlock->size + sizeof(MemoryBlock);
@@ -271,6 +255,29 @@ void printHeap() {
  *
  * */
 
+void coalesce() {
+    MemoryBlock *block = mm.freeList;
+    if (block->prev != NULL && block->prev->isFree) {
+        MemoryBlock *prev = block->prev;
+        prev->size += block->size + sizeof(MemoryBlock);
+        prev->next = block->next;
+        if (block->next != NULL) {
+            block->next->prev = prev;
+        }
+        block = prev;
+    }
+    // Coalesce next
+    if (block->next != NULL && block->next->isFree) {
+        MemoryBlock *next = block->next;
+        block->size += next->size + sizeof(MemoryBlock);
+        block->next = next->next;
+        if (next->next != NULL) {
+            next->next->prev = block;
+        }
+    }
+
+}
+
 void myfree(void *ptr) {
     // If ptr is NULL, myfree does nothing
     if (ptr == NULL) {
@@ -298,38 +305,39 @@ void myfree(void *ptr) {
     }
     mm.freeList = block;
 
-    // Coalesce prev
-    if (block->prev != NULL && block->prev->isFree) {
-        MemoryBlock *prev = block->prev;
-        prev->size += block->size + sizeof(MemoryBlock);
-        prev->next = block->next;
-        if (block->next != NULL) {
-            block->next->prev = prev;
-        }
-        block = prev;
-    }
-    // Coalesce next
-    if (block->next != NULL && block->next->isFree) {
-        MemoryBlock *next = block->next;
-        block->size += next->size + sizeof(MemoryBlock);
-        block->next = next->next;
-        if (next->next != NULL) {
-            next->next->prev = block;
-        }
-    }
+    // Coalesce
+    coalesce();
 }
+
 /*
  *
  * REALLOC
  *
  * */
 
+void splitBlock(MemoryBlock *block, size_t size) {
+    MemoryBlock *newBlock = (MemoryBlock *) ((char *) block + sizeof(MemoryBlock) + size);
+    newBlock->prev = block;
+    newBlock->next = block->next;
+    newBlock->size = block->size - size - sizeof(MemoryBlock);
+    newBlock->isFree = true;
+    block->next = newBlock;
+    block->size = size;
+}
+
 void *myrealloc(void *ptr, size_t size) {
 /*
-* Grabs the data from ptr
-* Frees it then creates a new block with size
-* Copies the data from the old block to the new block
-* returns new block
+ * Grabs the data from ptr
+ * Frees it then creates a new block with size
+ * Copies the data from the old block to the new block
+ * returns new block
+ *
+ * THere are "edge" cases to consider though, particularly making sure it returns in place if size is
+ * large enough, as well as having to split the block if the size is smaller than the original
+ *
+ * It should also be able to check if next block is free & has enough space to prevent fragmentation
+ *
+ * Otherwise, it's really straightforward and just does what the first 4 lines of this comment said
 * */
     if (ptr == NULL || size == 0) {
         printf("Wrong pointer or size is 0");
@@ -347,81 +355,45 @@ void *myrealloc(void *ptr, size_t size) {
         return ptr;
     }
 
+    // If the size is smaller than the current block, split the block then return OG block pointer
     if (block->size > size) {
         if (block->size - size < sizeof(MemoryBlock)) {
             return ptr;
         }
-        MemoryBlock *newBlock = (MemoryBlock *) ((char *) block + size + sizeof(MemoryBlock));
-        newBlock->size = block->size - size - sizeof(MemoryBlock);
-        newBlock->isFree = true;
-        newBlock->next = block->next;
-        newBlock->prev = block;
-        block->size = size;
-        block->next = newBlock;
-        if (newBlock->next != NULL) {
-            newBlock->next->prev = newBlock;
+        splitBlock(block, size);
+        return ptr;
+    }
+
+    // If the size is larger than the current block, check if the next block is free and if it is large enough
+    if (block->next != NULL && block->next->isFree && block->size + block->next->size + sizeof(MemoryBlock) >= size) {
+        // Coalesce the blocks to just make the og block larger
+        if (block->size + block->next->size + sizeof(MemoryBlock) == size) {
+            block->size += block->next->size + sizeof(MemoryBlock);
+            block->next = block->next->next;
+            if (block->next != NULL) {
+                block->next->prev = block;
+            }
+            return ptr;
+        }
+        // "Else case" if block is large enough but is too big, it splits the block
+        splitBlock(block->next, size - block->size - sizeof(MemoryBlock));
+        block->size += block->next->size + sizeof(MemoryBlock);
+        block->next = block->next->next;
+        if (block->next != NULL) {
+            block->next->prev = block;
         }
         return ptr;
     }
 
-    if (block->size < size) {
-        if (block->next != NULL && block->next->isFree && block->size + block->next->size + sizeof(MemoryBlock) >= size) {
-            MemoryBlock *next = block->next;
-            block->size += next->size + sizeof(MemoryBlock);
-            block->next = next->next;
-            if (next->next != NULL) {
-                next->next->prev = block;
-            }
-            if (block->size >= size) {
-                if (block->size - size < sizeof(MemoryBlock)) {
-                    return ptr;
-                }
-                MemoryBlock *newBlock = (MemoryBlock *) ((char *) block + size + sizeof(MemoryBlock));
-                newBlock->size = block->size - size - sizeof(MemoryBlock);
-                newBlock->isFree = true;
-                newBlock->next = block->next;
-                newBlock->prev = block;
-                block->size = size;
-                block->next = newBlock;
-                if (newBlock->next != NULL) {
-                    newBlock->next->prev = newBlock;
-                }
-                return ptr;
-            }
-        }
-        void *newPtr = mymalloc(size);
-        memcpy(newPtr, ptr, temp->size);
-        myfree(ptr);
-        return newPtr;
-    }
-
-    return NULL;
-
-/*    MemoryBlock *block = (MemoryBlock *) ((char *) ptr - sizeof(MemoryBlock));
-    size_t newSize = size;
-    void *tempBlock = block;
-
-    if (newSize == block->size) {
-        return ptr; // Keep size the same due to being 8 byte aligned
-    }
-
-    // Update the og memory block to set as free and such
-    block->isFree = true;
-
-    mm.freeList = block;
-    myfree(ptr); // This should coalesce it as well so gg
-    block = NULL;
-
-    MemoryBlock *newPtr = mymalloc(size);
-    if (newPtr == NULL) {
+    // This is the "else" scenario where the next block isn't free enough
+    // Alloc new block using mymalloc and the original AllocAlgo and copy using memcpy
+    void *newBlock = mymalloc(size);
+    if (newBlock == NULL) {
         return NULL;
     }
-
-    memcpy(newPtr, tempBlock, block->size);
-    newPtr->size = newSize;
-    mm.lastSearched = newPtr;
-
-    return newPtr;*/
+    memcpy(newBlock, ptr, block->size);
+    myfree(ptr); // Free original block
+    return newBlock;
 }
 
 /*
