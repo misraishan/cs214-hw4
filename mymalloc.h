@@ -11,6 +11,7 @@ typedef struct MemoryBlock {
     struct MemoryBlock *next; // Pointer to the next block in the list
     struct MemoryBlock *prev; // Pointer to the previous block in the list
     struct MemoryBlock *nextFree; // Pointer to the next free block in the list
+    struct MemoryBlock *prevFree; // Pointer to the previous free block in the list
     bool isFree; // Whether the block is free or not
 } MemoryBlock;
 
