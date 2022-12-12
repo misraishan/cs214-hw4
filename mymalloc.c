@@ -276,30 +276,29 @@ void myfree(void *ptr) {
     if (ptr == NULL) {
         return;
     }
-    // Get the block header for the given pointer
+
     MemoryBlock *block = (MemoryBlock *) ((char *) ptr - sizeof(MemoryBlock));
-    // Mark the block as free
     block->isFree = true;
 
-    // Check if the block is the first in the free list
     if (block == mm.freeList) {
         mm.freeList = block->nextFree;
     }
-    // Update the pointers in the previous and next blocks, if they exist
+
+    // Update the pointers in the previous and next blocks
     if (block->prevFree != NULL) {
         block->prevFree->nextFree = block->nextFree;
     }
     if (block->nextFree != NULL) {
         block->nextFree->prevFree = block->prevFree;
     }
-    // Add the block to the front of the free list
+
     block->nextFree = mm.freeList;
     if (mm.freeList != NULL) {
         mm.freeList->prevFree = block;
     }
     mm.freeList = block;
 
-    // Try to coalesce with the previous block, if it exists and is free
+    // Coalesce prev
     if (block->prev != NULL && block->prev->isFree) {
         MemoryBlock *prev = block->prev;
         prev->size += block->size + sizeof(MemoryBlock);
@@ -309,7 +308,7 @@ void myfree(void *ptr) {
         }
         block = prev;
     }
-    // Try to coalesce with the next block
+    // Coalesce next
     if (block->next != NULL && block->next->isFree) {
         MemoryBlock *next = block->next;
         block->size += next->size + sizeof(MemoryBlock);
@@ -342,9 +341,65 @@ void *myrealloc(void *ptr, size_t size) {
     }
 
     MemoryBlock *block = (MemoryBlock *) ((char *) ptr - sizeof(MemoryBlock));
+    MemoryBlock *temp = block;
+
+    if (block->size == size) {
+        return ptr;
+    }
+
+    if (block->size > size) {
+        if (block->size - size < sizeof(MemoryBlock)) {
+            return ptr;
+        }
+        MemoryBlock *newBlock = (MemoryBlock *) ((char *) block + size + sizeof(MemoryBlock));
+        newBlock->size = block->size - size - sizeof(MemoryBlock);
+        newBlock->isFree = true;
+        newBlock->next = block->next;
+        newBlock->prev = block;
+        block->size = size;
+        block->next = newBlock;
+        if (newBlock->next != NULL) {
+            newBlock->next->prev = newBlock;
+        }
+        return ptr;
+    }
+
+    if (block->size < size) {
+        if (block->next != NULL && block->next->isFree && block->size + block->next->size + sizeof(MemoryBlock) >= size) {
+            MemoryBlock *next = block->next;
+            block->size += next->size + sizeof(MemoryBlock);
+            block->next = next->next;
+            if (next->next != NULL) {
+                next->next->prev = block;
+            }
+            if (block->size >= size) {
+                if (block->size - size < sizeof(MemoryBlock)) {
+                    return ptr;
+                }
+                MemoryBlock *newBlock = (MemoryBlock *) ((char *) block + size + sizeof(MemoryBlock));
+                newBlock->size = block->size - size - sizeof(MemoryBlock);
+                newBlock->isFree = true;
+                newBlock->next = block->next;
+                newBlock->prev = block;
+                block->size = size;
+                block->next = newBlock;
+                if (newBlock->next != NULL) {
+                    newBlock->next->prev = newBlock;
+                }
+                return ptr;
+            }
+        }
+        void *newPtr = mymalloc(size);
+        memcpy(newPtr, ptr, temp->size);
+        myfree(ptr);
+        return newPtr;
+    }
+
+    return NULL;
+
+/*    MemoryBlock *block = (MemoryBlock *) ((char *) ptr - sizeof(MemoryBlock));
     size_t newSize = size;
-    MemoryBlock *tempBlock = block;
-    tempBlock->size = newSize;
+    void *tempBlock = block;
 
     if (newSize == block->size) {
         return ptr; // Keep size the same due to being 8 byte aligned
@@ -354,7 +409,7 @@ void *myrealloc(void *ptr, size_t size) {
     block->isFree = true;
 
     mm.freeList = block;
-    myfree(ptr); // This should coalesce it as well so ggIt DOES trade blows with the 4080, sometimes slap it, sometimes gets slapped
+    myfree(ptr); // This should coalesce it as well so gg
     block = NULL;
 
     MemoryBlock *newPtr = mymalloc(size);
@@ -366,7 +421,7 @@ void *myrealloc(void *ptr, size_t size) {
     newPtr->size = newSize;
     mm.lastSearched = newPtr;
 
-    return newPtr;
+    return newPtr;*/
 }
 
 /*
