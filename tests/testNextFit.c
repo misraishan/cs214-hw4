@@ -12,6 +12,8 @@ void testNextFit() {
     char *fiveChar = (char *) mymalloc(sizeof(char) * 5); // 8 byes
 
     printf("Malloc'd 24, 8, and 8\n");
+    printf("Printing heap...\n");
+    printHeap();
     printf("Will now free middle (singleInt)\n");
 
     myfree(singleInt);

@@ -3,6 +3,7 @@
 //
 
 #include "../mymalloc.h"
+#include <string.h>
 
 void testFirstFit() {
     myinit(0); // Use first-fit algorithm
@@ -28,12 +29,9 @@ void testFirstFit() {
     printHeap();
 
     printf("Allocating chars...\n");
+    // allocate a string
     char *charArray = (char *) mymalloc(5*sizeof(char)); // 5 bytes
-    charArray[0] = 'h';
-    charArray[1] = 'e';
-    charArray[2] = 'l';
-    charArray[3] = 'l';
-    charArray[4] = 'o';
+    strcpy(charArray, "hello");
 
     printf("Allocated 5 chars, with value of %s\n", charArray);
     printf("5 bytes allocated\n");
