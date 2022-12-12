@@ -396,7 +396,7 @@ void *myrealloc(void *ptr, size_t size) {
             return ptr;
         }
         // "Else case" if block is large enough but is too big, it splits the block
-        splitBlock(block->next, size - block->size - sizeof(MemoryBlock));
+        splitBlock(block->next, size);
         block->size += block->next->size + sizeof(MemoryBlock);
         block->next = block->next->next;
         if (block->next != NULL) {
