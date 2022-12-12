@@ -427,10 +427,10 @@ void mycleanup() {
  * Pretty easy function, just free the head and set it to NULL
  * Use the actual free function to free the head, then set every pointer to NULL
  * */
-    free(mm.head);
-    mm.head = NULL;
     mm.lastSearched = NULL;
     mm.freeList = NULL;
     mm.allocAlgo = 0;
     mm.size = 0;
+    mm.head = NULL;
+    free(mm.head);
 }

@@ -20,6 +20,7 @@ int main() {
     printf("\033[0m");
     testNextFit();
 
+    printf("\033[0;31m");
     printf("\n\nTesting best fit...\n\n");
     printf("\033[0m");
     testBestFit();
