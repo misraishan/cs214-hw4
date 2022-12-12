@@ -409,12 +409,13 @@ void *myrealloc(void *ptr, size_t size) {
             return ptr;
         }
         // "Else case" if block is large enough but is too big, it splits the block
-        splitBlock(block->next, size);
-        block->size += block->next->size + sizeof(MemoryBlock);
-        block->next = block->next->next;
-        if (block->next != NULL) {
-            block->next->prev = block;
+        MemoryBlock *next = block->next;
+        block->size += next->size + sizeof(MemoryBlock);
+        block->next = next->next;
+        if (next->next != NULL) {
+            next->next->prev = block;
         }
+        splitBlock(block, size);
         return ptr;
     }
 
@@ -445,5 +446,7 @@ void mycleanup() {
     mm.allocAlgo = 0;
     mm.size = 0;
     mm.head = NULL;
+    free(mm.lastSearched);
     free(mm.head);
+    free(mm.freeList);
 }
