@@ -54,6 +54,12 @@ void myinit(int algorithm) {
  * */
 
 void *firstFit(MemoryBlock *head, size_t size) {
+/*
+ * Use the head passed in (this was originally supposed to be used by the nextFit function as well
+ * but time constraints to figure bugs out so I just copied stuff into that func lol
+ *
+ * Finds the first block that is big enough to fit the size passed in and returns a pointer to it
+ * */
     MemoryBlock *current = head;
 
     // Find the first block that is large enough to satisfy the request
@@ -206,6 +212,9 @@ void *bestFit(size_t size) {
 }
 
 void *mymalloc(size_t size) {
+/*
+ * Super simple function, get the size, get the head, make it 8 byte aligned, and call the appropriate function
+ * */
     // Check if the memory manager has been initialized
     if (mm.head == NULL) {
         printf("Error: Memory manager is not initialized\n");
@@ -256,6 +265,13 @@ void printHeap() {
  * */
 
 void coalesce() {
+/*
+ * Coalesce — merge adjacent free blocks (this is for reference I keep forgetting what it means)
+ *
+ * Loop through "heap" using the freeList head
+ * If the next block is free, merge them
+ * If the previous block is free, merge them
+ */
     MemoryBlock *block = mm.freeList;
     if (block->prev != NULL && block->prev->isFree) {
         MemoryBlock *prev = block->prev;
@@ -279,7 +295,12 @@ void coalesce() {
 }
 
 void myfree(void *ptr) {
-    // If ptr is NULL, myfree does nothing
+/*
+ * A lot of the bulk of this function really happens in coalesce(), but here's the gist...
+ * Get the memory block that is being freed using the pointer passed in
+ * Set the isFree flag to true, then update all the pointers and stuff to make sure the LL is still intact
+ * Set freeList to the block that was just freed, and then just coallesce
+ */
     if (ptr == NULL) {
         return;
     }
@@ -403,11 +424,14 @@ void *myrealloc(void *ptr, size_t size) {
  * */
 
 void mycleanup() {
+/*
+ * Pretty easy function, just free the head and set it to NULL
+ * Use the actual free function to free the head, then set every pointer to NULL
+ * */
+    free(mm.head);
     mm.head = NULL;
     mm.lastSearched = NULL;
+    mm.freeList = NULL;
     mm.allocAlgo = 0;
     mm.size = 0;
-
-    free(mm.head);
-    free(mm.lastSearched);
 }
