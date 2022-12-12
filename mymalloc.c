@@ -56,7 +56,7 @@ void myinit(int algorithm) {
 void *firstFit(MemoryBlock *head, size_t size) {
 /*
  * Use the head passed in (this was originally supposed to be used by the nextFit function as well
- * but time constraints to figure bugs out so I just copied stuff into that func lol
+ * but time constraints to figure bugs out, so I just copied stuff into that func lol)
  *
  * Finds the first block that is big enough to fit the size passed in and returns a pointer to it
  * */
@@ -299,7 +299,7 @@ void myfree(void *ptr) {
  * A lot of the bulk of this function really happens in coalesce(), but here's the gist...
  * Get the memory block that is being freed using the pointer passed in
  * Set the isFree flag to true, then update all the pointers and stuff to make sure the LL is still intact
- * Set freeList to the block that was just freed, and then just coallesce
+ * Set freeList to the block that was just freed, and then just coalesce
  */
     if (ptr == NULL) {
         return;
@@ -370,7 +370,6 @@ void *myrealloc(void *ptr, size_t size) {
     }
 
     MemoryBlock *block = (MemoryBlock *) ((char *) ptr - sizeof(MemoryBlock));
-    MemoryBlock *temp = block;
 
     if (block->size == size) {
         return ptr;

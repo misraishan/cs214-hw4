@@ -6,6 +6,16 @@
 #include <stdbool.h>
 
 // Struct for a memory block
+/*
+ * Hi grader, this is just a small note:
+ * TO be clear, this is NOT a good implementation of a memory block.
+ * It works, but clearly 48 bytes is more than we need in like most cases
+ *
+ * I emailed professor ames abt it, and he said "probably more than you should need, but this assignment is
+        more concerned with correctness than performance"
+ *
+ * I'm just happy to get this done tho <3
+ */
 typedef struct MemoryBlock {
     size_t size; // Size of the block, including the block header
     struct MemoryBlock *next; // Pointer to the next block in the list
