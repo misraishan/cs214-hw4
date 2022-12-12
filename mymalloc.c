@@ -42,6 +42,8 @@ void myinit(int algorithm) {
     mm.head->next = NULL;
     mm.head->prev = NULL;
     mm.head->isFree = true;
+    mm.head->nextFree = NULL;
+    mm.head->prevFree = NULL;
     mm.freeList = mm.head;
     mm.lastSearched = mm.head;
     mm.size = sizeof(char) * (1024 * 1024);
@@ -103,6 +105,9 @@ void *firstFit(MemoryBlock *head, size_t size) {
     current->size = size;
     current->isFree = false; //allocated memory
 
+    current->nextFree = newBlock;
+    newBlock->prevFree = current;
+
     return (char *) current + sizeof(MemoryBlock);
 }
 
@@ -156,6 +161,8 @@ void *nextFit(size_t size) {
     newBlock->isFree = true; //free memory
     current->size = size;
     current->isFree = false; //allocated memory
+    current->nextFree = newBlock;
+    newBlock->prevFree = current;
 
     return (char *) current + sizeof(MemoryBlock);
 }
@@ -199,6 +206,12 @@ void *bestFit(size_t size) {
     bestFit->size = size;
     bestFit->next = newBlock;
     bestFit->isFree = false;
+    bestFit->nextFree = newBlock;
+    newBlock->prevFree = bestFit;
+    bestFit->prev = NULL;
+    newBlock->isFree = true;
+    newBlock->prev = bestFit;
+    mm.lastSearched = bestFit;
 
     if (bestFit == mm.freeList) {
         mm.freeList = newBlock;
